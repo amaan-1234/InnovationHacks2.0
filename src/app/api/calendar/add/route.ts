@@ -27,7 +27,7 @@ function buildEndDate(endDate: string) {
 }
 
 function buildTripKey(evt: CalendarEventInput) {
-  return [evt.tripId || evt.summary || "TripPilot Event", evt.dayNumber || 0].join("::");
+  return [evt.tripId || evt.summary || "VoyagerAI 2.0 Event", evt.dayNumber || 0].join("::");
 }
 
 export async function POST(req: Request) {
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       timeMax,
       singleEvents: true,
       maxResults: 250,
-      privateExtendedProperty: "source=trippilot",
+      privateExtendedProperty: ["source=voyagerai"],
     });
 
     const existingByKey = new Map<string, string>();
@@ -84,15 +84,15 @@ export async function POST(req: Request) {
       const isAllDay = !evt.startDate.includes("T");
       const tripKey = buildTripKey(evt);
       const eventBody: any = {
-        summary: evt.summary || "TripPilot Event",
+        summary: evt.summary || "VoyagerAI 2.0 Event",
         description: evt.description || "",
         location: evt.location || "",
         attendees: attendeeList,
         extendedProperties: {
           private: {
-            source: "trippilot",
+            source: "voyagerai",
             tripKey,
-            tripId: evt.tripId || evt.summary || "TripPilot Event",
+            tripId: evt.tripId || evt.summary || "VoyagerAI 2.0 Event",
             dayNumber: String(evt.dayNumber || 0),
             routeUrl: evt.routeUrl || "",
           },

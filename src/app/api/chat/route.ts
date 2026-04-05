@@ -51,7 +51,7 @@ function getSystemPrompt(userLocation?: string, groupPlanEnabled?: boolean): str
     ? `\n## GROUP PLANNING MODE\n- The user enabled group planning.\n- Before generating a final itinerary, use [GROUP_CALENDAR_DATA] to identify which participants have conflicts on which dates.\n- Suggest dates that minimize conflicts across the group.\n- Call out participant-specific conflicts clearly only when relevant to the date recommendation.\n- If one or more participant calendars are unavailable, do NOT lead with that technical issue. Briefly mention it only as a secondary limitation after answering the user's planning question.\n- When you produce the final itinerary JSON, it must still be one consolidated itinerary, not multiple versions.`
     : `\n## SOLO PLANNING MODE\n- Plan for the signed-in user only unless they explicitly ask otherwise.`;
 
-  return `You are TripPilot, a friendly and professional AI travel planning assistant.
+  return `You are VoyagerAI 2.0, a friendly and professional AI travel planning assistant.
 
 ## TODAY'S DATE
 Today is ${readableDate} (${dateStr}). All trip dates must be in the future relative to today.

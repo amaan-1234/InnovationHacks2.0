@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const messageParts = [
       "From: " + userEmail,
       "To: " + recipientList.join(", "),
-      "Subject: " + (subject || "Your TripPilot Itinerary"),
+      "Subject: " + (subject || "Your VoyagerAI 2.0 Itinerary"),
       "MIME-Version: 1.0",
       'Content-Type: text/html; charset="UTF-8"',
       "",
