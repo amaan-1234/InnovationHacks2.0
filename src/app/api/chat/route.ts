@@ -13,6 +13,12 @@ const FALLBACK_GROQ_MODELS = [
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
 const SERPAPI_URL = "https://serpapi.com/search.json";
 
+type TripSpec = {
+  destination: string;
+  startDate: string;
+  endDate: string;
+};
+
 type GroupPlanInput = {
   enabled?: boolean;
 };
@@ -333,7 +339,7 @@ async function fetchSerpJson(params: Record<string, string>) {
   return response.json();
 }
 
-async function resolveAirport(query: string) {
+async function resolveAirport(query: string): Promise<{ airportId: string; airportName: string; city: string }> {
   const data = await fetchSerpJson({
     engine: "google_flights_autocomplete",
     q: query,
@@ -357,7 +363,7 @@ async function resolveAirport(query: string) {
   throw new Error(`No airport found for "${query}"`);
 }
 
-function extractLatestTripSpec(messages: any[]) {
+function extractLatestTripSpec(messages: any[]): TripSpec | null {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const content = String(messages[i]?.content || "");
     const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
@@ -382,8 +388,8 @@ function extractLatestTripSpec(messages: any[]) {
   if (destinationMatch && dateMatches.length >= 2) {
     return {
       destination: destinationMatch[1].trim(),
-      startDate: dateMatches[0],
-      endDate: dateMatches[1],
+      startDate: dateMatches[0]!,
+      endDate: dateMatches[1]!,
     };
   }
 
@@ -418,7 +424,7 @@ async function fetchFlightData(userLocation: string | undefined, messages: any[]
       hl: "en",
       gl: "us",
       deep_search: "true",
-      api_key: SERPAPI_KEY,
+      api_key: SERPAPI_KEY!,
     });
 
     const flights = [...(flightData.best_flights || []), ...(flightData.other_flights || [])]

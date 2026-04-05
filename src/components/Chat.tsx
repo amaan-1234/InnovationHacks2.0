@@ -191,7 +191,7 @@ export default function Chat() {
       const data = await res.json();
       const reply = data.reply || 'Sorry, something went wrong.';
       const extracted = extractTripData(reply);
-      const updatedMessages = extracted
+      const updatedMessages: ChatMessage[] = extracted
         ? [...newMessages.filter((message) => !(message.role === 'assistant' && containsTripData(message.content))), { role: 'assistant', content: reply }]
         : [...newMessages, { role: 'assistant', content: reply }];
 
@@ -204,7 +204,7 @@ export default function Chat() {
       }
     } catch {
       const errMsg = 'Connection error. Please try again.';
-      setMessages([...newMessages, { role: 'assistant', content: errMsg }]);
+      setMessages([...newMessages, { role: 'assistant', content: errMsg } as ChatMessage]);
       setSubtitle(errMsg);
     } finally {
       setLoading(false);
@@ -359,14 +359,14 @@ export default function Chat() {
             searchUrl: flightData.searchUrl,
             originAirport: flightData.originAirport,
             destinationAirport: flightData.destinationAirport,
-          } satisfies FlightLegLink;
+          } as FlightLegLink;
         } catch {
           return null;
         }
       })
     );
 
-    return results.filter((result): result is FlightLegLink => Boolean(result));
+    return results.filter((result): result is FlightLegLink => result !== null);
   };
 
   const buildEmailHtml = (trip: TripData, flightLinks: FlightLegLink[]): string => {
