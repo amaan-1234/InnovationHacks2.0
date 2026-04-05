@@ -1,4 +1,4 @@
-# TripPilot — AI Travel Planning Agent
+# Voyager AI 2.0 — AI Travel Planning Agent
 
 > An intelligent, voice-enabled travel planner that checks your Google Calendar, suggests optimal travel windows, and builds a complete trip itinerary through a conversational chatbot interface.
 
@@ -23,13 +23,13 @@ TripPilot is a split-screen web app featuring an animated AI avatar on the left 
 │  Web Speech API for TTS + STT           │
 ├─────────────────────────────────────────┤
 │              API Layer                   │
-│  /api/chat → Groq (Llama 3.3 70B)      │
+│  /api/chat → Gemini (Llama 3.3 70B)      │
 │  /api/auth → NextAuth + Google OAuth    │
 │  Calendar data injected as context      │
 ├─────────────────────────────────────────┤
 │           External Services              │
 │  Google Calendar API (readonly)          │
-│  Groq Cloud (LLM inference)             │
+│  Gemini Cloud (LLM inference)             │
 └─────────────────────────────────────────┘
 ```
 
@@ -47,7 +47,6 @@ TripPilot is a split-screen web app featuring an animated AI avatar on the left 
 npm install
 
 # Set environment variables in .env
-GROQ_API_KEY=your_groq_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXTAUTH_SECRET=any_random_secret
@@ -78,10 +77,10 @@ npm run dev
 |-------|-----------|
 | Framework | Next.js 16 (App Router) |
 | Styling | Tailwind CSS |
-| LLM | Groq (Llama 3.3 70B Versatile) |
+| LLM | Gemini |
 | Auth | NextAuth.js + Google OAuth |
 | Calendar | Google Calendar API v3 |
-| Voice | Web Speech API (TTS + STT) |
+| Voice | ElevenLabs |
 | Deployment | Vercel |
 
 ## 📄 License
