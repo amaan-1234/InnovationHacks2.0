@@ -19,6 +19,16 @@ type FlightSearchBody = {
   oneWay?: boolean;
 };
 
+type SerpFlight = {
+  price?: number;
+  total_duration?: number;
+  flights?: Array<{
+    airline?: string;
+    departure_airport?: { id: string; name: string; time: string };
+    arrival_airport?: { id: string; name: string; time: string };
+  }>;
+};
+
 type FlightOption = {
   id: "cheapest" | "shortest" | "longest";
   label: string;
@@ -89,7 +99,7 @@ async function resolveAirport(query: string) {
   throw new Error(`No airport found for "${query}"`);
 }
 
-function toFlightOption(id: FlightOption["id"], label: string, flight: any, searchUrl: string): FlightOption {
+function toFlightOption(id: FlightOption["id"], label: string, flight: SerpFlight, searchUrl: string): FlightOption {
   const firstLeg = flight.flights?.[0];
   const lastLeg = flight.flights?.[flight.flights.length - 1];
   const airline = firstLeg?.airline || "Unknown airline";
@@ -113,15 +123,15 @@ function toFlightOption(id: FlightOption["id"], label: string, flight: any, sear
   };
 }
 
-function selectDistinctOptions(flights: any[], searchUrl: string) {
+function selectDistinctOptions(flights: SerpFlight[], searchUrl: string) {
   const withMetrics = flights.filter((flight) => typeof flight.price === "number" && typeof flight.total_duration === "number");
   if (withMetrics.length === 0) {
     throw new Error("No flights with price and duration were returned.");
   }
 
-  const cheapest = [...withMetrics].sort((a, b) => a.price - b.price)[0];
-  const shortest = [...withMetrics].sort((a, b) => a.total_duration - b.total_duration)[0];
-  const longest = [...withMetrics].sort((a, b) => b.total_duration - a.total_duration)[0];
+  const cheapest = [...withMetrics].sort((a, b) => (a.price || 0) - (b.price || 0))[0];
+  const shortest = [...withMetrics].sort((a, b) => (a.total_duration || 0) - (b.total_duration || 0))[0];
+  const longest = [...withMetrics].sort((a, b) => (b.total_duration || 0) - (a.total_duration || 0))[0];
 
   return [
     toFlightOption("cheapest", "Cheapest", cheapest, searchUrl),
@@ -175,7 +185,10 @@ export async function POST(req: Request) {
       searchUrl,
       options,
     });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
+    const fs = require('fs');
+    fs.appendFileSync('flights_error.log', `[${new Date().toISOString()}] Flights API Error: ${error.message}\nStack: ${error.stack}\n\n`);
     return Response.json(
       { error: error.message || "Failed to fetch flights." },
       { status: 500 }

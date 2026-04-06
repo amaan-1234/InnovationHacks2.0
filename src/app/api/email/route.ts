@@ -12,7 +12,7 @@ function getConfiguredGroupParticipants() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const accessToken = (session as any)?.accessToken;
+    const accessToken = session?.accessToken;
     const userEmail = session?.user?.email;
 
     if (!accessToken || !userEmail) {
@@ -57,7 +57,8 @@ export async function POST(req: Request) {
       success: true,
       message: `Itinerary emailed to ${recipientList.join(", ")}.`,
     });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("Email Send Error:", error);
     return Response.json(
       { error: "Failed to send email: " + error.message },

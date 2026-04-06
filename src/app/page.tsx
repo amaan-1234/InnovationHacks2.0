@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function Home() {
         <div className="max-w-[1200px] mx-auto">
           <div className="text-center max-w-[700px] mx-auto mb-20 animate-in section-header">
             <h2 className="font-outfit text-3xl md:text-5xl font-bold mb-6">Beyond Traditional Planning.</h2>
-            <p className="text-text-secondary text-lg">VoyagerAI doesn't just suggest places; it understands context, budget, and real-time logistics.</p>
+            <p className="text-text-secondary text-lg">VoyagerAI doesn&apos;t just suggest places; it understands context, budget, and real-time logistics.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

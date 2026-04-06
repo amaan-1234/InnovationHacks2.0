@@ -2,6 +2,11 @@ import { getServerSession } from "next-auth/next";
 import { google } from "googleapis";
 import { authOptions } from "./../../api/auth/[...nextauth]/route";
 
+type Message = {
+  role: "user" | "assistant" | "system";
+  content: string;
+};
+
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const PRIMARY_GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -175,15 +180,16 @@ async function fetchCalendarEvents(accessToken: string): Promise<string> {
       return "[CALENDAR_DATA]\nNo events found in the next 3 months. The user appears to be completely free.\n[/CALENDAR_DATA]";
     }
 
-    const lines = events.map((event: any) => {
+    const lines = events.map((event) => {
       const start = event.start?.date || event.start?.dateTime || "unknown";
       const end = event.end?.date || event.end?.dateTime || "unknown";
       return `- ${event.summary || "Busy"}: ${start} to ${end}`;
     });
 
     return `[CALENDAR_DATA]\nUser booked events for the next 3 months:\n${lines.join("\n")}\nSuggest travel dates where the user has no conflicts.\n[/CALENDAR_DATA]`;
-  } catch (err: any) {
-    return `[CALENDAR_DATA]\nCould not access calendar: ${err.message}\n[/CALENDAR_DATA]`;
+  } catch (err: unknown) {
+    const error = err as Error;
+    return `[CALENDAR_DATA]\nCould not access calendar: ${error.message}\n[/CALENDAR_DATA]`;
   }
 }
 
@@ -246,12 +252,12 @@ async function fetchGroupCalendarData(accessToken: string, participants: string[
     ];
 
     return `[GROUP_CALENDAR_DATA]\n${summaryLines.join("\n")}\nUse this to explain who has conflicts and suggest the best group dates.\n[/GROUP_CALENDAR_DATA]`;
-  } catch (err: any) {
+  } catch {
     return `[GROUP_CALENDAR_DATA]\nGroup calendar availability could not be fully checked.\nThis usually means the signed-in Google account does not have access to one or more configured calendars.\n[/GROUP_CALENDAR_DATA]`;
   }
 }
 
-async function callGroqWithModel(model: string, systemPrompt: string, messages: any[]): Promise<string> {
+async function callGroqWithModel(model: string, systemPrompt: string, messages: Message[]): Promise<string> {
   const res = await fetch(GROQ_URL, {
     method: "POST",
     headers: {
@@ -277,11 +283,12 @@ async function callGroqWithModel(model: string, systemPrompt: string, messages: 
   return data.choices[0].message.content;
 }
 
-async function callGroq(systemPrompt: string, messages: any[]): Promise<{ reply: string; model: string }> {
+async function callGroq(systemPrompt: string, messages: Message[]): Promise<{ reply: string; model: string }> {
   try {
     const reply = await callGroqWithModel(PRIMARY_GROQ_MODEL, systemPrompt, messages);
     return { reply, model: PRIMARY_GROQ_MODEL };
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as { message: string; status?: number };
     const message = String(error?.message || "");
     const isRateLimit = error?.status === 429 || message.includes("rate_limit_exceeded") || message.includes("Rate limit reached");
 
@@ -292,7 +299,8 @@ async function callGroq(systemPrompt: string, messages: any[]): Promise<{ reply:
       try {
         const reply = await callGroqWithModel(model, systemPrompt, messages);
         return { reply, model };
-      } catch (fallbackError: any) {
+      } catch (err: unknown) {
+        const fallbackError = err as { message: string; status?: number };
         const fallbackMessage = String(fallbackError?.message || "");
         const fallbackRateLimit =
           fallbackError?.status === 429 ||
@@ -309,7 +317,7 @@ async function callGroq(systemPrompt: string, messages: any[]): Promise<{ reply:
   }
 }
 
-async function fetchHotelPricesAPI(messages: any[]): Promise<string> {
+async function fetchHotelPricesAPI(messages: Message[]): Promise<string> {
   const allText = messages.map((message) => message.content).join(" ").toLowerCase();
 
   let destination = "Unknown";
@@ -377,7 +385,7 @@ async function resolveAirport(query: string): Promise<{ airportId: string; airpo
   throw new Error(`No airport found for "${query}"`);
 }
 
-function extractLatestTripSpec(messages: any[]): TripSpec | null {
+function extractLatestTripSpec(messages: Message[]): TripSpec | null {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const content = String(messages[i]?.content || "");
     const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
@@ -410,7 +418,7 @@ function extractLatestTripSpec(messages: any[]): TripSpec | null {
   return null;
 }
 
-async function fetchFlightData(userLocation: string | undefined, messages: any[]) {
+async function fetchFlightData(userLocation: string | undefined, messages: Message[]) {
   if (!SERPAPI_KEY) return "";
 
   const tripSpec = extractLatestTripSpec(messages);
@@ -442,17 +450,17 @@ async function fetchFlightData(userLocation: string | undefined, messages: any[]
     });
 
     const flights = [...(flightData.best_flights || []), ...(flightData.other_flights || [])]
-      .filter((flight: any) => typeof flight.price === "number" && typeof flight.total_duration === "number");
+      .filter((flight: { price?: number; total_duration?: number }) => typeof flight.price === "number" && typeof flight.total_duration === "number");
 
     if (flights.length === 0) {
       return `[FLIGHT_DATA]\nNo live flight results were returned for ${originAirport.airportId} to ${destinationAirport.airportId} on ${tripSpec.startDate} to ${tripSpec.endDate}.\n[/FLIGHT_DATA]`;
     }
 
-    const cheapest = [...flights].sort((a: any, b: any) => a.price - b.price)[0];
-    const shortest = [...flights].sort((a: any, b: any) => a.total_duration - b.total_duration)[0];
-    const longest = [...flights].sort((a: any, b: any) => b.total_duration - a.total_duration)[0];
+    const cheapest = [...flights].sort((a, b) => (a.price as number) - (b.price as number))[0];
+    const shortest = [...flights].sort((a, b) => (a.total_duration as number) - (b.total_duration as number))[0];
+    const longest = [...flights].sort((a, b) => (b.total_duration as number) - (a.total_duration as number))[0];
 
-    const summarize = (label: string, flight: any) => {
+    const summarize = (label: string, flight: { flights?: Array<{ airline?: string; departure_airport?: { id: string; time: string }; arrival_airport?: { id: string; time: string } }>; price?: number; total_duration?: number }) => {
       const firstLeg = flight.flights?.[0];
       const lastLeg = flight.flights?.[flight.flights.length - 1];
       const stops = Math.max((flight.flights?.length || 1) - 1, 0);
@@ -468,12 +476,13 @@ async function fetchFlightData(userLocation: string | undefined, messages: any[]
     };
 
     return `[FLIGHT_DATA]\nOrigin: ${originAirport.airportName} (${originAirport.airportId})\nDestination: ${destinationAirport.airportName} (${destinationAirport.airportId})\nDates: ${tripSpec.startDate} to ${tripSpec.endDate}\n\n${summarize("Cheapest", cheapest)}\n\n${summarize("Shortest", shortest)}\n\n${summarize("Longest", longest)}\n[/FLIGHT_DATA]`;
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     return `[FLIGHT_DATA]\nLive flight data could not be fetched yet: ${error.message}\n[/FLIGHT_DATA]`;
   }
 }
 
-function buildBudgetEstimate(messages: any[], hotelPricesBlock: string, flightBlock: string) {
+function buildBudgetEstimate(messages: Message[], hotelPricesBlock: string, flightBlock: string) {
   const tripSpec = extractLatestTripSpec(messages);
   if (!tripSpec) {
     return "[BUDGET_ESTIMATE]\nBudget estimate not available yet because exact travel dates are still incomplete.\n[/BUDGET_ESTIMATE]";
@@ -509,8 +518,8 @@ Trip length: ${nights} night(s)
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const accessToken = (session as any)?.accessToken;
-    const { messages, userLocation, groupPlan }: { messages: any[]; userLocation?: string; groupPlan?: GroupPlanInput } = await req.json();
+    const accessToken = session?.accessToken;
+    const { messages, userLocation, groupPlan }: { messages: Message[]; userLocation?: string; groupPlan?: GroupPlanInput } = await req.json();
 
     const participants = getConfiguredGroupParticipants();
     const systemPrompt = getSystemPrompt(userLocation, Boolean(groupPlan?.enabled));
@@ -538,10 +547,13 @@ export async function POST(req: Request) {
 
     const result = await callGroq(systemPrompt, enrichedMessages);
     return Response.json({ reply: result.reply, model: result.model });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const fs = require('fs');
+    fs.appendFileSync('chat_error.log', `[${new Date().toISOString()}] Chat API Error: ${message}\nStack: ${error instanceof Error ? error.stack : 'N/A'}\n\n`);
     console.error("Chat API Error:", error);
     return Response.json(
-      { reply: "Sorry, I ran into a technical issue. Please try again.", error: error.message },
+      { reply: "Sorry, I ran into a technical issue. Please try again.", error: message },
       { status: 500 }
     );
   }

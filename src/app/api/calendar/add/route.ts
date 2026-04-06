@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth/next";
-import { google } from "googleapis";
+import { google, calendar_v3 } from "googleapis";
 import { authOptions } from "./../../auth/[...nextauth]/route";
 
 type CalendarEventInput = {
@@ -33,7 +33,7 @@ function buildTripKey(evt: CalendarEventInput) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const accessToken = (session as any)?.accessToken;
+    const accessToken = session?.accessToken;
 
     if (!accessToken) {
       return Response.json({ error: "Not authenticated. Please sign out and sign back in to grant Calendar write permissions." }, { status: 401 });
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
 
       const isAllDay = !evt.startDate.includes("T");
       const tripKey = buildTripKey(evt);
-      const eventBody: any = {
+      const eventBody: calendar_v3.Schema$Event = {
         summary: evt.summary || "VoyagerAI 2.0 Event",
         description: evt.description || "",
         location: evt.location || "",
@@ -137,7 +137,8 @@ export async function POST(req: Request) {
       message: `${createdCount} event(s) created and ${updatedCount} event(s) updated in Google Calendar.`,
       events: results,
     });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as { response?: { data?: { error?: { code: number } } }; message: string };
     console.error("[Calendar Add] ERROR:", error?.response?.data || error.message);
 
     const googleError = error?.response?.data?.error;

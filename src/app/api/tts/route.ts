@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
         "Cache-Control": "no-cache",
       },
     });
-  } catch (error: any) {
+  } catch (err: unknown) {
+    const error = err as Error;
     console.error("[TTS] Exception:", error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
