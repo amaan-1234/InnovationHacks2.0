@@ -17,19 +17,19 @@ TripPilot is a split-screen web app featuring an animated AI avatar on the left 
 
 ```
 ┌─────────────────────────────────────────┐
-│               Frontend                   │
+│               Frontend                  │
 │  Next.js 16 (App Router) + Tailwind     │
 │  Split-screen: Avatar | Chat            │
 │  Web Speech API for TTS + STT           │
 ├─────────────────────────────────────────┤
-│              API Layer                   │
-│  /api/chat → Gemini (Llama 3.3 70B)      │
+│              API Layer                  │
+│  /api/chat → Gemini (Llama 3.3 70B)     │
 │  /api/auth → NextAuth + Google OAuth    │
 │  Calendar data injected as context      │
 ├─────────────────────────────────────────┤
-│           External Services              │
-│  Google Calendar API (readonly)          │
-│  Gemini Cloud (LLM inference)             │
+│           External Services             │
+│  Google Calendar API (readonly)         │
+│  Gemini Cloud (LLM inference)           │
 └─────────────────────────────────────────┘
 ```
 
